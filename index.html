@@ -153,12 +153,23 @@
   .ai-banner p { margin: 3px 0 0; font-size: 13.5px; color: #3f3f46; line-height: 1.5; }
 
   .muted { color: var(--muted-fg); }
+  .mnav { display: none; }
 
   @media (max-width: 980px) {
     .shell { grid-template-columns: 1fr; }
     .sidebar { display: none; }
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .grid-2 { grid-template-columns: 1fr; }
+    .topbar { padding: 0 14px; gap: 8px; }
+    .crumb .root, .crumb .sep { display: none; }
+    .asof, .topbar .btn.ghost { display: none; }
+    .mnav { display: block; flex: 1; min-width: 0; }
+    .content { padding: 16px 14px 40px; }
+  }
+  @media (max-width: 520px) {
+    .kpis { grid-template-columns: 1fr; }
+    .topbar .btn span, .topbar .btn { font-size: 0; }
+    .topbar .btn svg { width: 16px; height: 16px; }
   }
 </style>
 
@@ -219,6 +230,15 @@
   <main>
     <div class="topbar">
       <div class="crumb"><span class="root">Zietsman Architects</span><span class="sep">/</span><span class="cur" id="crumbCur">Dashboard</span></div>
+      <select class="select mnav" id="mNav" aria-label="Navigate">
+        <option value="dashboard">Dashboard</option>
+        <option value="projects">Project Profitability</option>
+        <option value="invoices">Overdue Invoices</option>
+        <option value="cash">Cash Flow</option>
+        <option value="recon">Reconciliation</option>
+        <option value="explore">Explore</option>
+        <option value="staff">Staff &amp; Rates</option>
+      </select>
       <div class="spacer"></div>
       <div class="asof"><span class="dot"></span> Data as of 25/06/2026</div>
       <button class="btn ghost">Export</button>
@@ -636,6 +656,7 @@ function show(page) {
   document.getElementById("content").innerHTML = PAGES[page]();
   document.getElementById("crumbCur").textContent = titles[page];
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page===page));
+  document.getElementById("mNav").value = page;
   window.scrollTo(0,0);
 }
 function showDetail(code) {
@@ -643,9 +664,11 @@ function showDetail(code) {
   document.getElementById("content").innerHTML = projectDetail(code);
   document.getElementById("crumbCur").textContent = p.name;
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page==="projects"));
+  document.getElementById("mNav").value = "projects";
   window.scrollTo(0,0);
 }
 document.getElementById("nav").addEventListener("click", e => { const b = e.target.closest(".nav-item"); if (b) show(b.dataset.page); });
+document.getElementById("mNav").addEventListener("change", e => show(e.target.value));
 document.getElementById("content").addEventListener("click", e => {
   const back = e.target.closest("[data-back]"); if (back) { show(back.dataset.back); return; }
   const row = e.target.closest("tr[data-code]"); if (row) showDetail(row.dataset.code);
