@@ -1,3 +1,7 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Zietsman Architects — Practice Dashboard</title>
@@ -28,7 +32,9 @@
     --mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; letter-spacing: -.006em; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; letter-spacing: -.006em; overflow-x: hidden; }
+  .card, .kpi { min-width: 0; }
+  .grid-2 > * { min-width: 0; }
   .num, .mono { font-variant-numeric: tabular-nums; }
   .mono { font-family: var(--mono); }
 
@@ -41,7 +47,7 @@
   .brand .glyph svg { width: 16px; height: 16px; color: var(--foreground); }
   .brand .name { font-weight: 600; font-size: 13.5px; letter-spacing: .14em; line-height: 1.15; text-transform: uppercase; }
   .brand .sub { font-size: 10px; color: var(--muted-fg); letter-spacing: .22em; text-transform: uppercase; }
-  nav { padding: 8px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
+  .sidebar nav { padding: 8px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
   .nav-label { font-size: 11px; letter-spacing: .02em; color: var(--muted-fg); padding: 14px 8px 4px; font-weight: 500; }
   .nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 7px; color: #3f3f46; cursor: pointer; font-weight: 450; border: none; background: none; width: 100%; text-align: left; font-size: 13.5px; font-family: inherit; letter-spacing: -.006em; }
   .nav-item:hover { background: var(--sidebar-accent); }
@@ -169,8 +175,8 @@
     .content { padding: 16px 14px calc(74px + env(safe-area-inset-bottom)); gap: 16px; }
 
     /* bottom tab bar */
-    .botnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
-      background: rgba(255,255,255,.94); backdrop-filter: blur(10px); border-top: 1px solid var(--border);
+    .botnav { display: flex; flex-direction: row; gap: 0; position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+      background: rgba(255,255,255,.94); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--border);
       padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
     .botnav button { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
       background: none; border: none; font-family: inherit; font-size: 10.5px; color: var(--muted-fg);
@@ -212,7 +218,8 @@
     .kpis { grid-template-columns: 1fr; }
   }
 </style>
-
+</head>
+<body>
 <div class="shell">
   <aside class="sidebar">
     <div class="brand">
@@ -661,13 +668,13 @@ function projectDetail(code) {
   const billRow = (lab,v,col) => `<div style="display:flex;align-items:center;gap:12px"><div style="width:140px;font-size:13px;color:var(--muted-fg)">${lab}</div>${bar(v,p.fee,col)}<div class="mono" style="width:110px;text-align:right;font-weight:550">${ZAR(v)}</div></div>`;
   const stat = (lab,val,formula,cls="") => `<div class="kpi"><div class="desc">${lab}</div><div class="val num ${cls}">${val}</div><div class="foot"><div class="sub mono" style="font-size:11px">${formula}</div></div></div>`;
   return `
-  <div style="display:flex;align-items:center;gap:12px">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <button class="btn ghost" data-back="projects"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> Projects</button>
-    <div>
+    <div style="min-width:0;flex:1">
       <div style="font-size:19px;font-weight:600;letter-spacing:-.02em">${p.name}</div>
       <div class="proj-code mono" style="font-size:12.5px">${p.code} · ${p.client}</div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">${typeTag(p.type)} <span class="muted" style="font-size:13px">Lead: ${lead(p.pm)}</span> ${statusPill(p.status)}</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${typeTag(p.type)} <span class="muted" style="font-size:13px">Lead: ${lead(p.pm)}</span> ${statusPill(p.status)}</div>
   </div>
   <div class="kpis">
     ${stat("Fee estimate", ZAR(p.fee), "Agreed fee · from Fresh Projects")}
@@ -754,3 +761,5 @@ document.getElementById("content").addEventListener("click", e => {
 });
 show("dashboard");
 </script>
+</body>
+</html>
