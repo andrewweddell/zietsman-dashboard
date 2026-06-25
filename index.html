@@ -1,0 +1,654 @@
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zietsman Architects — Practice Dashboard</title>
+<style>
+  :root {
+    --background: #ffffff;
+    --foreground: #0a0a0b;
+    --card: #ffffff;
+    --muted: #f4f4f5;
+    --muted-2: #fafafa;
+    --muted-fg: #71717a;
+    --border: #e4e4e7;
+    --border-2: #d4d4d8;
+    --primary: #18181b;
+    --primary-fg: #fafafa;
+    --sidebar: #fafafa;
+    --sidebar-accent: #f1f1f3;
+    --ring: #a1a1aa;
+    --chart: #3f3f46;
+    --chart-soft: #d4d4d8;
+    --pos: #15803d; --pos-bg: #f0fdf4; --pos-bd: #bbf7d0;
+    --warn: #b45309; --warn-bg: #fffbeb; --warn-bd: #fde68a;
+    --crit: #dc2626; --crit-bg: #fef2f2; --crit-bd: #fecaca;
+    --radius: 10px;
+    --sh-xs: 0 1px 2px rgba(9,9,11,.05);
+    --sh-sm: 0 1px 2px rgba(9,9,11,.06), 0 1px 3px rgba(9,9,11,.05);
+    --sans: "Geist", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; letter-spacing: -.006em; }
+  .num, .mono { font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--mono); }
+
+  .shell { display: grid; grid-template-columns: 252px 1fr; min-height: 100vh; }
+
+  /* sidebar */
+  .sidebar { background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
+  .brand .glyph { width: 32px; height: 32px; border-radius: 7px; background: var(--card); border: 1.5px solid var(--primary); position: relative; flex: none; display: grid; place-items: center; }
+  .brand .glyph svg { width: 16px; height: 16px; color: var(--foreground); }
+  .brand .name { font-weight: 600; font-size: 13.5px; letter-spacing: .14em; line-height: 1.15; text-transform: uppercase; }
+  .brand .sub { font-size: 10px; color: var(--muted-fg); letter-spacing: .22em; text-transform: uppercase; }
+  nav { padding: 8px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
+  .nav-label { font-size: 11px; letter-spacing: .02em; color: var(--muted-fg); padding: 14px 8px 4px; font-weight: 500; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 7px; color: #3f3f46; cursor: pointer; font-weight: 450; border: none; background: none; width: 100%; text-align: left; font-size: 13.5px; font-family: inherit; letter-spacing: -.006em; }
+  .nav-item:hover { background: var(--sidebar-accent); }
+  .nav-item.active { background: var(--sidebar-accent); color: var(--foreground); font-weight: 550; }
+  .nav-item .ic { width: 16px; height: 16px; flex: none; color: currentColor; opacity: .85; }
+  .nav-item .badge { margin-left: auto; font-size: 11px; background: var(--crit); color: #fff; border-radius: 6px; padding: 0 6px; line-height: 17px; font-weight: 600; min-width: 18px; text-align: center; }
+  .org { margin-top: auto; padding: 8px; }
+  .org-in { display: flex; align-items: center; gap: 9px; padding: 8px; border-radius: 8px; }
+  .org-in:hover { background: var(--sidebar-accent); }
+  .org .av { width: 32px; height: 32px; border-radius: 8px; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; font-weight: 600; font-size: 12px; flex: none; }
+  .org .who { font-size: 13px; font-weight: 550; line-height: 1.2; }
+  .org .role { font-size: 11.5px; color: var(--muted-fg); }
+  .org .chev { margin-left: auto; color: var(--muted-fg); }
+
+  /* main */
+  main { display: flex; flex-direction: column; min-width: 0; }
+  .topbar { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,.8); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 0 24px; height: 56px; }
+  .crumb { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .crumb .sep { color: var(--border-2); }
+  .crumb .root { color: var(--muted-fg); }
+  .crumb .cur { font-weight: 550; }
+  .topbar .spacer { flex: 1; }
+  .asof { font-size: 12.5px; color: var(--muted-fg); display: flex; align-items: center; gap: 6px; }
+  .asof .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 0 3px rgba(21,128,61,.12); }
+  .btn { font-family: inherit; font-size: 13px; font-weight: 500; border-radius: 8px; padding: 0 13px; height: 34px; border: 1px solid var(--primary); background: var(--primary); color: var(--primary-fg); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; letter-spacing: -.006em; }
+  .btn:hover { background: #2a2a30; }
+  .btn.ghost { background: var(--card); color: var(--foreground); border-color: var(--border-2); box-shadow: var(--sh-xs); }
+  .btn.ghost:hover { background: var(--muted); }
+  .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  .content { padding: 22px 24px 48px; display: flex; flex-direction: column; gap: 18px; max-width: 1320px; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--sh-xs); }
+  .card-h { display: flex; align-items: center; gap: 10px; padding: 16px 18px 0; }
+  .card-h h2 { font-size: 14px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  .card-h .meta { margin-left: auto; font-size: 12.5px; color: var(--muted-fg); }
+  .card-b { padding: 14px 18px 18px; }
+
+  /* section-card KPIs (shadcn dashboard-01 style) */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kpi { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--sh-xs); padding: 18px 18px 16px; display: flex; flex-direction: column; }
+  .kpi .desc { font-size: 13px; color: var(--muted-fg); }
+  .kpi .val { font-size: 29px; font-weight: 600; letter-spacing: -.025em; margin-top: 5px; line-height: 1.1; }
+  .kpi .val .unit { font-size: 14px; color: var(--muted-fg); font-weight: 500; letter-spacing: 0; }
+  .kpi .cbadge { position: absolute; top: 16px; right: 16px; }
+  .kpi .foot { margin-top: 16px; display: flex; flex-direction: column; gap: 3px; }
+  .kpi .foot .lead { font-weight: 550; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .kpi .foot .sub { color: var(--muted-fg); font-size: 12.5px; }
+  .kpi .foot .lead.crit { color: var(--crit); } .kpi .foot .lead.warn { color: var(--warn); } .kpi .foot .lead.pos { color: var(--pos); }
+
+  /* badges */
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 7px; border: 1px solid var(--border); background: var(--card); color: #3f3f46; line-height: 18px; }
+  .badge svg { width: 12px; height: 12px; }
+  .badge.crit { color: var(--crit); border-color: var(--crit-bd); background: var(--crit-bg); }
+  .badge.warn { color: var(--warn); border-color: var(--warn-bd); background: var(--warn-bg); }
+  .badge.pos { color: var(--pos); border-color: var(--pos-bd); background: var(--pos-bg); }
+
+  .grid-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; align-items: start; }
+
+  /* tables */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 12px; color: var(--muted-fg); font-weight: 500; padding: 0 12px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th.r, td.r { text-align: right; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--muted); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--muted-2); }
+  tr.prow { cursor: pointer; }
+  tr.prow td:first-child .proj-name::after { content: " ›"; color: var(--border-2); }
+  .proj-name { font-weight: 550; }
+  .proj-code { font-size: 11.5px; color: var(--muted-fg); margin-top: 1px; }
+
+  .pill { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 6px; border: 1px solid transparent; line-height: 17px; }
+  .pill.ok { color: #3f3f46; background: var(--muted); border-color: var(--border); }
+  .pill.watch { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-bd); }
+  .pill.over { color: #fff; background: var(--crit); }
+  .pill.concept { color: var(--muted-fg); background: var(--card); border-color: var(--border-2); }
+  .tag { font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 6px; background: var(--muted); color: #52525b; border: 1px solid var(--border); }
+
+  .burn { display: flex; align-items: center; gap: 9px; min-width: 150px; }
+  .burn .track { flex: 1; height: 6px; border-radius: 20px; background: var(--muted); overflow: hidden; }
+  .burn .fill { height: 100%; border-radius: 20px; }
+  .burn .pct { width: 36px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #52525b; }
+  .pos-amt { color: var(--pos); font-weight: 550; } .neg-amt { color: var(--crit); font-weight: 550; }
+
+  .stack { display: flex; height: 10px; border-radius: 20px; overflow: hidden; margin: 6px 0 14px; gap: 2px; }
+  .stack span { height: 100%; border-radius: 3px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted-fg); }
+  .legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: 0px; }
+
+  .alert { display: flex; gap: 11px; padding: 12px 13px; border-radius: 9px; border: 1px solid; align-items: flex-start; }
+  .alert.crit { background: var(--crit-bg); border-color: var(--crit-bd); }
+  .alert.warn { background: var(--warn-bg); border-color: var(--warn-bd); }
+  .alert.ok { background: var(--pos-bg); border-color: var(--pos-bd); }
+  .alert .ai { width: 17px; height: 17px; flex: none; margin-top: 1px; }
+  .alert .t { font-weight: 600; font-size: 13px; }
+  .alert.crit .t { color: var(--crit); } .alert.warn .t { color: var(--warn); } .alert.ok .t { color: var(--pos); }
+  .alert .d { font-size: 12.5px; color: #52525b; margin-top: 2px; line-height: 1.45; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .select { font-family: inherit; font-size: 13px; border: 1px solid var(--border-2); background: var(--card); border-radius: 8px; padding: 0 11px; height: 34px; color: #3f3f46; cursor: pointer; box-shadow: var(--sh-xs); }
+  .search { flex: 1; min-width: 180px; max-width: 280px; border: 1px solid var(--border-2); border-radius: 8px; padding: 0 11px; height: 34px; font-size: 13px; font-family: inherit; box-shadow: var(--sh-xs); }
+  .search:focus, .select:focus { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+  .ai-banner { display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--radius); background: var(--muted-2); border: 1px solid var(--border); align-items: flex-start; }
+  .ai-banner .ico { width: 32px; height: 32px; border-radius: 8px; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; flex: none; }
+  .ai-banner .ico svg { width: 17px; height: 17px; }
+  .ai-banner .badge2 { font-size: 10.5px; font-weight: 600; letter-spacing: .03em; color: var(--muted-fg); text-transform: uppercase; }
+  .ai-banner p { margin: 3px 0 0; font-size: 13.5px; color: #3f3f46; line-height: 1.5; }
+
+  .muted { color: var(--muted-fg); }
+
+  @media (max-width: 980px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6"/></svg></div>
+      <div>
+        <div class="name">Zietsman</div>
+        <div class="sub">Architects</div>
+      </div>
+    </div>
+    <nav id="nav">
+      <div class="nav-label">Overview</div>
+      <button class="nav-item active" data-page="dashboard">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Dashboard
+      </button>
+      <div class="nav-label">Financials</div>
+      <button class="nav-item" data-page="projects">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+        Project Profitability <span class="badge">1</span>
+      </button>
+      <button class="nav-item" data-page="invoices">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2h12l4 4v16H4zM14 2v4h4M8 12h8M8 16h6"/></svg>
+        Overdue Invoices <span class="badge">5</span>
+      </button>
+      <button class="nav-item" data-page="cash">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8M21 7v5h-5"/></svg>
+        Cash Flow
+      </button>
+      <button class="nav-item" data-page="recon">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l4 4-4 4M20 7H8M8 21l-4-4 4-4M4 17h12"/></svg>
+        Reconciliation
+      </button>
+      <button class="nav-item" data-page="explore">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        Explore
+      </button>
+      <div class="nav-label">People</div>
+      <button class="nav-item" data-page="staff">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0M16 5.5a3 3 0 0 1 0 5.5M21 20a5.6 5.6 0 0 0-4-5.3"/></svg>
+        Staff &amp; Rates
+      </button>
+    </nav>
+    <div class="org">
+      <div class="org-in">
+        <div class="av">TZ</div>
+        <div>
+          <div class="who">Tiaan Zietsman</div>
+          <div class="role">CEO</div>
+        </div>
+        <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l4-4 4 4M16 15l-4 4-4-4"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="crumb"><span class="root">Zietsman Architects</span><span class="sep">/</span><span class="cur" id="crumbCur">Dashboard</span></div>
+      <div class="spacer"></div>
+      <div class="asof"><span class="dot"></span> Data as of 25/06/2026</div>
+      <button class="btn ghost">Export</button>
+      <button class="btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+        Import data
+      </button>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<script>
+const ZAR = (n) => "R" + Math.round(n).toLocaleString("en-ZA");
+const ZARm = (n) => "R" + (n/1e6).toFixed(2) + "M";
+const trUp = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8M21 7v5h-5"/></svg>';
+const trDn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6 6 4-4 8 8M21 17v-5h-5"/></svg>';
+
+const projects = [
+  {code:"AP-2408", name:"Durban CBD Mixed-Use", client:"Metro Urban Renewal", pm:"Pieter van der Merwe", type:"Commercial", fee:8200000, cost:491700, status:"concept"},
+  {code:"AP-2406", name:"Pietermaritzburg Retail Centre", client:"Midlands Property Group", pm:"Thabo Mokoena", type:"Commercial", fee:5600000, cost:2238955, status:"ok"},
+  {code:"AP-2403", name:"Umhlanga Office Block", client:"Crystal Towers (Pty) Ltd", pm:"Thabo Mokoena", type:"Commercial", fee:3400000, cost:1629100, status:"ok"},
+  {code:"AP-2404", name:"Hillcrest Townhouse Complex", client:"Greenfield Developments", pm:"Pieter van der Merwe", type:"Commercial", fee:2100000, cost:1470440, status:"watch"},
+  {code:"AP-2407", name:"La Lucia Villa", client:"Du Toit", pm:"Anita Naidoo", type:"House", fee:1800000, cost:1044575, status:"ok"},
+  {code:"AP-2402", name:"Ballito Beach House", client:"Naicker Family Trust", pm:"Anita Naidoo", type:"House", fee:1200000, cost:743665, status:"ok"},
+  {code:"AP-2401", name:"Kloof Residence", client:"M & R Pretorius", pm:"Pieter van der Merwe", type:"House", fee:850000, cost:469635, status:"ok"},
+  {code:"AP-2405", name:"Westville Renovation", client:"A. Govender", pm:"Sarah Botha", type:"House", fee:320000, cost:378455, status:"over"},
+];
+projects.forEach(p => { p.margin = p.fee - p.cost; p.burn = p.cost / p.fee * 100; });
+
+const burnColor = (b) => b > 100 ? "var(--crit)" : b >= 70 ? "var(--warn)" : "var(--pos)";
+const statusPill = (s) => ({ok:'<span class="pill ok">On track</span>', watch:'<span class="pill watch">Watch</span>', over:'<span class="pill over">Over budget</span>', concept:'<span class="pill concept">Concept</span>'}[s]);
+const typeTag = (t) => `<span class="tag">${t}</span>`;
+const lead = (pm) => pm.split(" ")[0] + " " + pm.split(" ").slice(-1);
+
+const aged = [
+  {client:"A. Govender", inv:"INV-0012", due:"16/06/2026", amt:165600, days:9, bucket:1},
+  {client:"Crystal Towers (Pty) Ltd", inv:"INV-0008", due:"08/06/2026", amt:586500, days:17, bucket:1},
+  {client:"Greenfield Developments", inv:"INV-0011", due:"11/05/2026", amt:523250, days:45, bucket:2},
+  {client:"Crystal Towers (Pty) Ltd", inv:"INV-0007", due:"01/05/2026", amt:586500, days:55, bucket:2},
+  {client:"Naicker Family Trust", inv:"INV-0004", due:"22/04/2026", amt:230000, days:64, bucket:3},
+];
+const bk = {1:752100, 2:1109750, 3:230000, 4:0};
+const bkColor = {1:"#c4c4c9", 2:"#f0b15a", 3:"#e8836f", 4:"#b91c1c"};
+const bkLabel = {1:"1-30 days", 2:"31-60 days", 3:"61-90 days", 4:"90+ days"};
+const totalOverdue = 2091850;
+
+const cash = [
+  {m:"Jan", v:564122}, {m:"Feb", v:-123437}, {m:"Mar", v:-43564},
+  {m:"Apr", v:2365361}, {m:"May", v:3168933}, {m:"Jun", v:2705227},
+];
+
+const staff = [
+  ["Pieter van der Merwe","Principal Architect",650,1400],["Anita Naidoo","Associate Architect",480,1100],
+  ["Thabo Mokoena","Senior Architect",450,1050],["Sarah Botha","Architect",350,850],
+  ["Johan Pretorius","Architect",340,850],["Lerato Dlamini","Architectural Technologist",280,700],
+  ["Riaan Steyn","Architectural Technologist",270,700],["Fatima Patel","Junior Architect",240,600],
+  ["Nomsa Khumalo","Draughtsperson",220,550],["David Smith","Draughtsperson",210,550],
+  ["Grace Mhlongo","Office Manager",200,0],["Kobus Joubert","Bookkeeper",230,0],
+];
+const leave = [
+  ["Johan Pretorius","Annual","16/03/2026","27/03/2026"],["Sarah Botha","Annual","06/04/2026","10/04/2026"],
+  ["Thabo Mokoena","Sick","12/05/2026","13/05/2026"],["Anita Naidoo","Family Responsibility","20/05/2026","21/05/2026"],
+  ["Nomsa Khumalo","Annual","02/06/2026","06/06/2026"],["David Smith","Annual","29/06/2026","10/07/2026"],
+];
+
+const totalFee = projects.reduce((a,p)=>a+p.fee,0);
+const totalCost = projects.reduce((a,p)=>a+p.cost,0);
+
+// per-project team (drives the cost-to-date breakdown) and billing
+const teams = {
+  "AP-2401":["Pieter van der Merwe","Sarah Botha","Nomsa Khumalo"],
+  "AP-2402":["Anita Naidoo","Johan Pretorius","David Smith"],
+  "AP-2403":["Thabo Mokoena","Sarah Botha","Lerato Dlamini","Nomsa Khumalo"],
+  "AP-2404":["Pieter van der Merwe","Johan Pretorius","Riaan Steyn","David Smith"],
+  "AP-2405":["Sarah Botha","Fatima Patel","Nomsa Khumalo"],
+  "AP-2406":["Thabo Mokoena","Anita Naidoo","Lerato Dlamini","Riaan Steyn","Fatima Patel"],
+  "AP-2407":["Anita Naidoo","Sarah Botha","David Smith"],
+  "AP-2408":["Pieter van der Merwe","Thabo Mokoena"],
+};
+const invoiced = {"AP-2401":537625,"AP-2402":690000,"AP-2403":1759500,"AP-2404":1569750,"AP-2405":331200,"AP-2406":2254000,"AP-2407":1138500,"AP-2408":0};
+const paidM    = {"AP-2401":537625,"AP-2402":460000,"AP-2403":580750,"AP-2404":1046500,"AP-2405":0,"AP-2406":2254000,"AP-2407":759000,"AP-2408":0};
+const rateOf = (n) => (staff.find(s=>s[0]===n)||[0,0,0])[2];
+const roleOf = (n) => (staff.find(s=>s[0]===n)||[0,""])[1];
+
+const startDates = {"AP-2401":"13/01/2026","AP-2402":"20/01/2026","AP-2403":"03/02/2026","AP-2404":"06/01/2026","AP-2405":"16/03/2026","AP-2406":"27/01/2026","AP-2407":"10/02/2026","AP-2408":"02/06/2026"};
+const TODAY = new Date(2026,5,25);
+const pDMY = s => { const [d,m,y]=s.split("/").map(Number); return new Date(y,m-1,d); };
+const fDMY = dt => `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`;
+const addDays = (dt,n) => new Date(dt.getTime()+n*86400000);
+
+function profitTable(list) {
+  return `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Project</th><th>Type</th><th>Lead</th>
+      <th class="r">Fee estimate</th><th class="r">Cost to date</th><th class="r">Margin</th>
+      <th>Fee burn</th><th>Status</th>
+    </tr></thead><tbody>${list.map(p => `
+      <tr class="prow" data-code="${p.code}">
+        <td><div class="proj-name">${p.name}</div><div class="proj-code mono">${p.code} · ${p.client}</div></td>
+        <td>${typeTag(p.type)}</td>
+        <td class="muted">${lead(p.pm)}</td>
+        <td class="r mono">${ZAR(p.fee)}</td>
+        <td class="r mono">${ZAR(p.cost)}</td>
+        <td class="r mono ${p.margin<0?'neg-amt':'pos-amt'}">${p.margin<0?'-':''}${ZAR(Math.abs(p.margin))}</td>
+        <td><div class="burn"><div class="track"><div class="fill" style="width:${Math.min(p.burn,100)}%;background:${burnColor(p.burn)}"></div></div><div class="pct">${p.burn.toFixed(0)}%</div></div></td>
+        <td>${statusPill(p.status)}</td>
+      </tr>`).join("")}</tbody></table></div>`;
+}
+
+function cashChart() {
+  const W=760, H=230, padL=8, padR=8, padT=22, padB=26;
+  const innerW = W-padL-padR, innerH = H-padT-padB;
+  const vals = cash.map(c=>c.v);
+  const vMax = Math.max(...vals, 0), vMin = Math.min(...vals, 0);
+  const range = vMax - vMin || 1;
+  const x = i => padL + i*(innerW/(cash.length-1));
+  const y = v => padT + (vMax - v)/range*innerH;
+  const zeroY = y(0);
+  const line = cash.map((c,i)=>`${x(i).toFixed(1)},${y(c.v).toFixed(1)}`).join(" ");
+  const area = `${padL},${zeroY.toFixed(1)} ` + line + ` ${(padL+innerW).toFixed(1)},${zeroY.toFixed(1)}`;
+  const dots = cash.map((c,i)=>{const neg=c.v<0,last=i===cash.length-1;return `<circle cx="${x(i).toFixed(1)}" cy="${y(c.v).toFixed(1)}" r="${last?4.5:3}" fill="${neg?'var(--crit)':'var(--chart)'}" stroke="#fff" stroke-width="2"/>`;}).join("");
+  const labels = cash.map((c,i)=>`<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted-fg)">${c.m}</text>`).join("");
+  const valLabels = cash.map((c,i)=>{const neg=c.v<0,last=i===cash.length-1;if(!neg&&!last)return "";const yy=neg?y(c.v)+15:y(c.v)-9;return `<text x="${x(i).toFixed(1)}" y="${yy.toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="600" fill="${neg?'var(--crit)':'var(--chart)'}">${(c.v<0?'-':'')}R${Math.abs(Math.round(c.v/1000))}k</text>`;}).join("");
+  return `<div class="tbl-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bank balance trend, dipping below zero in February">
+    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--chart)" stop-opacity=".16"/><stop offset="1" stop-color="var(--chart)" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${padL+innerW}" y2="${zeroY.toFixed(1)}" stroke="var(--crit-bd)" stroke-width="1" stroke-dasharray="4 4"/>
+    <text x="${padL+2}" y="${(zeroY-5).toFixed(1)}" font-size="10" fill="#d18d86">R0</text>
+    <polygon points="${area}" fill="url(#cg)"/>
+    <polyline points="${line}" fill="none" stroke="var(--chart)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}${valLabels}${labels}
+  </svg></div>`;
+}
+
+function agedStack() {
+  const tot = bk[1]+bk[2]+bk[3]+bk[4];
+  const seg = b => bk[b] ? `<span style="width:${(bk[b]/tot*100).toFixed(1)}%;background:${bkColor[b]}"></span>` : "";
+  const leg = [1,2,3].map(b=>`<span><i style="background:${bkColor[b]}"></i>${bkLabel[b]} · ${ZAR(bk[b])}</span>`).join("");
+  return `<div class="legend">${leg}</div><div class="stack">${seg(1)}${seg(2)}${seg(3)}${seg(4)}</div>`;
+}
+
+const kpi = (o) => `<div class="kpi">
+  <div class="desc">${o.desc}</div>
+  <div class="val num">${o.val}</div>
+  <div class="cbadge"><span class="badge ${o.bk||''}">${o.bi||''}${o.btext}</span></div>
+  <div class="foot"><div class="lead ${o.lc||''}">${o.lead}${o.li||''}</div><div class="sub">${o.sub}</div></div>
+</div>`;
+
+const PAGES = {};
+
+PAGES.dashboard = () => `
+  <div class="ai-banner">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 4.8L19 9.5l-5.1 1.7L12 16l-1.9-4.8L5 9.5l5.1-1.7z"/><circle cx="18.5" cy="17.5" r="1.3"/></svg></div>
+    <div>
+      <span class="badge2">AI Insight · Phase 2 preview</span>
+      <p><strong>Westville Renovation has gone over budget</strong> at 118% of fee consumed (margin -${ZAR(58455)}). Separately, ${ZAR(totalOverdue)} is overdue across 5 invoices, with Naicker Family Trust now 64 days late. Cash has recovered to ${ZARm(2705227)} after dipping to -R123k in February.</p>
+    </div>
+  </div>
+
+  <div class="kpis">
+    ${kpi({desc:"Cash on hand", val:ZARm(2705227), bk:"warn", bi:trDn, btext:"14.5%", lead:"Down after June payroll", lc:"warn", sub:"Recovered from -R123k in February"})}
+    ${kpi({desc:"Overdue receivables", val:ZARm(totalOverdue), bk:"crit", btext:"5 invoices", lead:"Oldest 64 days late", lc:"crit", sub:"Naicker Family Trust · "+ZAR(230000)})}
+    ${kpi({desc:"Projects over budget", val:'1<span class="unit"> of 8</span>', bk:"warn", btext:"1 to watch", lead:"Westville at 118% burn", lc:"warn", sub:"Hillcrest approaching at 70%"})}
+    ${kpi({desc:"Portfolio margin", val:((totalFee-totalCost)/totalFee*100).toFixed(0)+"%", bk:"pos", bi:trUp, btext:"healthy", lead:ZARm(totalFee-totalCost)+" projected", lc:"pos", sub:"On "+ZARm(totalFee)+" of fees, 8 projects"})}
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>Bank balance trend</h2><span class="meta">Jan to Jun 2026 · from Xero</span></div>
+    <div class="card-b">${cashChart()}</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-h"><h2>Project profitability</h2><span class="meta">Fee vs cost to date</span></div>
+      <div class="card-b" style="padding-top:8px">${profitTable(projects)}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div class="card">
+        <div class="card-h"><h2>Aged receivables</h2><span class="meta">${ZAR(totalOverdue)}</span></div>
+        <div class="card-b">${agedStack()}
+          <div class="tbl-wrap"><table><tbody>${aged.map(a=>`<tr>
+            <td>${a.client}<div class="proj-code mono">${a.inv}</div></td>
+            <td class="r"><span class="pill ${a.bucket>=3?'over':a.bucket>=2?'watch':'ok'}">${a.days}d</span></td>
+            <td class="r mono" style="font-weight:550">${ZAR(a.amt)}</td>
+          </tr>`).join("")}</tbody></table></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Reconciliation</h2><span class="meta">15 matched</span></div>
+        <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
+          <div class="alert crit">
+            <svg class="ai" viewBox="0 0 24 24" fill="none" stroke="var(--crit)" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            <div><div class="t">In Fresh, not in Xero</div><div class="d">FP-1012 (A. Govender, ${ZAR(165600)}) has no matching Xero invoice.</div></div>
+          </div>
+          <div class="alert warn">
+            <svg class="ai" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            <div><div class="t">Amount mismatch</div><div class="d">Umhlanga FP-1006 is ${ZAR(586500)} in Fresh, ${ZAR(580750)} in Xero. Off by ${ZAR(5750)}.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+PAGES.projects = () => `
+  <div class="filters">
+    <input class="search" placeholder="Search projects or clients" />
+    <select class="select"><option>All types</option><option>House</option><option>Commercial</option></select>
+    <select class="select"><option>All leads</option><option>Pieter van der Merwe</option><option>Anita Naidoo</option><option>Thabo Mokoena</option><option>Sarah Botha</option></select>
+    <select class="select"><option>All statuses</option><option>On track</option><option>Watch</option><option>Over budget</option></select>
+    <div style="flex:1"></div><button class="btn ghost">Export CSV</button>
+  </div>
+  <div class="kpis">
+    ${kpi({desc:"Active projects", val:"8", btext:"4 commercial", lead:"2 houses currently billing", sub:"6 in progress, 1 at concept"})}
+    ${kpi({desc:"Total fees", val:ZARm(totalFee), btext:"portfolio", lead:"Across all projects", sub:"Largest: Durban CBD "+ZARm(8200000)})}
+    ${kpi({desc:"Cost to date", val:ZARm(totalCost), btext:(totalCost/totalFee*100).toFixed(0)+"%", lead:"of fees consumed", sub:"From costed timesheet hours"})}
+    ${kpi({desc:"Over / watch", val:"1 / 1", bk:"crit", btext:"action", lead:"Westville over budget", lc:"crit", sub:"Hillcrest to watch at 70%"})}
+  </div>
+  <div class="card"><div class="card-b" style="padding-top:18px">${profitTable(projects)}</div></div>
+  <p class="muted" style="font-size:12.5px;margin:0">Cost to date applies each person's cost rate (Staff &amp; Rates) to their Fresh Projects timesheet hours. Margin assumes the full fee estimate is earned.</p>`;
+
+PAGES.invoices = () => `
+  <div class="kpis">
+    ${kpi({desc:"Total overdue", val:ZARm(totalOverdue), bk:"crit", btext:"5 invoices", lead:"All past due date", lc:"crit", sub:"Nothing in the 90+ bucket yet"})}
+    ${kpi({desc:"31 to 60 days", val:ZARm(bk[2]), bk:"warn", btext:"2 invoices", lead:"Crystal Towers, Greenfield", lc:"warn", sub:"Follow up this week"})}
+    ${kpi({desc:"61 to 90 days", val:ZAR(bk[3]), bk:"crit", btext:"1 invoice", lead:"Naicker Family Trust", lc:"crit", sub:"INV-0004 · 64 days late"})}
+    ${kpi({desc:"Largest debtor", val:'<span style="font-size:19px">Crystal Towers</span>', btext:"2 invoices", lead:ZAR(1173000)+" outstanding", sub:"Umhlanga Office Block"})}
+  </div>
+  <div class="card">
+    <div class="card-h"><h2>Aged receivables</h2><span class="meta">from Xero · ${ZAR(totalOverdue)} outstanding</span></div>
+    <div class="card-b">${agedStack()}
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Client</th><th>Invoice</th><th>Due date</th><th class="r">Days overdue</th><th class="r">Amount due</th></tr></thead>
+        <tbody>${aged.map(a=>`<tr>
+          <td style="font-weight:550">${a.client}</td><td class="mono muted">${a.inv}</td><td class="mono muted">${a.due}</td>
+          <td class="r"><span class="pill ${a.bucket>=3?'over':a.bucket>=2?'watch':'ok'}">${a.days} days</span></td>
+          <td class="r mono" style="font-weight:550">${ZAR(a.amt)}</td>
+        </tr>`).join("")}</tbody>
+      </table></div>
+    </div>
+  </div>`;
+
+PAGES.cash = () => `
+  <div class="kpis">
+    ${kpi({desc:"Current balance", val:ZARm(2705227), bk:"pos", bi:trUp, btext:"positive", lead:"As of 25/06/2026", lc:"pos", sub:"After June salaries paid"})}
+    ${kpi({desc:"Lowest point", val:"-R123k", bk:"crit", btext:"25 Feb", lead:"Negative after payroll", lc:"crit", sub:"Two months running negative"})}
+    ${kpi({desc:"Avg monthly outflow", val:ZAR(700000), btext:"6 mo", lead:"Salaries, rent, software", sub:"Payroll is ~88% of this"})}
+    ${kpi({desc:"Received YTD", val:ZARm(5657875), bk:"pos", bi:trUp, btext:"client pmts", lead:"Banked in Xero", lc:"pos", sub:"Across 11 payments"})}
+  </div>
+  <div class="card"><div class="card-h"><h2>Bank balance trend</h2><span class="meta">Jan to Jun 2026</span></div><div class="card-b">${cashChart()}</div></div>
+  <div class="card">
+    <div class="card-h"><h2>Recent transactions</h2><span class="meta">from Xero</span></div>
+    <div class="card-b" style="padding-top:8px"><div class="tbl-wrap"><table>
+      <thead><tr><th>Date</th><th>Description</th><th class="r">Received</th><th class="r">Spent</th><th class="r">Balance</th></tr></thead>
+      <tbody>${[["07/06/2026","Payment received - Naicker Family Trust",230000,0,3333031],["18/06/2026","Sundries and consumables",0,9324,3323706],["25/06/2026","Salaries",0,618479,2705227]].map(r=>`<tr><td class="mono muted">${r[0]}</td><td>${r[1]}</td><td class="r mono pos-amt">${r[2]?ZAR(r[2]):""}</td><td class="r mono">${r[3]?ZAR(r[3]):""}</td><td class="r mono" style="font-weight:550">${ZAR(r[4])}</td></tr>`).join("")}</tbody>
+    </table></div></div>
+  </div>`;
+
+PAGES.recon = () => `
+  <div class="kpis">
+    ${kpi({desc:"Matched", val:"15", bk:"pos", bi:trUp, btext:"clean", lead:"No discrepancy", lc:"pos", sub:"Fresh invoices to Xero"})}
+    ${kpi({desc:"In Fresh, not Xero", val:"1", bk:"crit", btext:ZAR(165600), lead:"Missing in accounting", lc:"crit", sub:"FP-1012 · A. Govender"})}
+    ${kpi({desc:"Amount mismatch", val:"1", bk:"warn", btext:ZAR(5750), lead:"Off by "+ZAR(5750), lc:"warn", sub:"Umhlanga FP-1006"})}
+    ${kpi({desc:"Awaiting payment", val:"5", btext:"open", lead:"Tracked as overdue", sub:"See Overdue Invoices"})}
+  </div>
+  <div class="card"><div class="card-b" style="display:flex;flex-direction:column;gap:11px">
+    <div class="alert crit"><svg class="ai" viewBox="0 0 24 24" fill="none" stroke="var(--crit)" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      <div><div class="t">FP-1012 raised in Fresh, missing in Xero</div><div class="d">A. Govender (Westville Renovation), ${ZAR(165600)} incl VAT, issued 06/04/2026. No matching invoice in Xero. Likely not yet raised for accounting.</div></div></div>
+    <div class="alert warn"><svg class="ai" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      <div><div class="t">Amount mismatch on Umhlanga Office Block</div><div class="d">Fresh FP-1006 is ${ZAR(586500)} incl VAT; matched Xero invoice is ${ZAR(580750)}. Difference of ${ZAR(5750)} to investigate.</div></div></div>
+    <div class="alert ok"><svg class="ai" viewBox="0 0 24 24" fill="none" stroke="var(--pos)" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+      <div><div class="t">15 invoices reconciled cleanly</div><div class="d">Every other Fresh invoice maps to a Xero invoice with matching amounts and a recorded payment or due balance.</div></div></div>
+  </div></div>`;
+
+PAGES.explore = () => `
+  <div class="filters">
+    <input class="search" placeholder="Search across all data" />
+    <select class="select"><option>Group by: Client</option><option>Group by: Lead</option><option>Group by: Type</option><option>Group by: Month</option></select>
+    <select class="select"><option>All types</option><option>House</option><option>Commercial</option></select>
+    <select class="select"><option>This financial year</option><option>Last 90 days</option><option>Custom range</option></select>
+    <div style="flex:1"></div><button class="btn ghost">Export CSV</button>
+  </div>
+  <div class="card"><div class="card-h"><h2>Explore</h2><span class="meta">Slice and dice across Fresh + Xero · 8 rows</span></div>
+    <div class="card-b" style="padding-top:8px">${profitTable(projects)}</div></div>
+  <p class="muted" style="font-size:12.5px;margin:0">The Explore view answers the ad hoc questions the fixed dashboards do not: filter, group, and aggregate the unified data, then export. Shown grouped by project; switch the grouping to slice by lead, client, type, or period.</p>`;
+
+PAGES.staff = () => `
+  <div class="grid-2">
+    <div class="card"><div class="card-h"><h2>Staff rates</h2><span class="meta">12 employees · ZAR / hour</span></div>
+      <div class="card-b" style="padding-top:8px"><div class="tbl-wrap"><table>
+        <thead><tr><th>Employee</th><th>Role</th><th class="r">Cost rate</th><th class="r">Charge rate</th></tr></thead>
+        <tbody>${staff.map(s=>`<tr><td style="font-weight:550">${s[0]}</td><td class="muted">${s[1]}</td><td class="r mono">${ZAR(s[2])}</td><td class="r mono">${s[3]?ZAR(s[3]):'<span class="muted">non-billable</span>'}</td></tr>`).join("")}</tbody>
+      </table></div></div></div>
+    <div class="card"><div class="card-h"><h2>Leave</h2><span class="meta">affects availability</span></div>
+      <div class="card-b" style="padding-top:8px"><div class="tbl-wrap"><table>
+        <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th></tr></thead>
+        <tbody>${leave.map(l=>`<tr><td style="font-weight:550">${lead(l[0])}</td><td><span class="tag">${l[1]}</span></td><td class="mono muted">${l[2]}</td><td class="mono muted">${l[3]}</td></tr>`).join("")}</tbody>
+      </table></div></div></div>
+  </div>
+  <p class="muted" style="font-size:12.5px;margin:0">South Africa has no native Xero payroll, so rates and leave are maintained here (or imported from SimplePay / PaySpace later). Cost rates feed project profitability; leave feeds availability and utilisation.</p>`;
+
+function projectDetail(code) {
+  const p = projects.find(x=>x.code===code);
+  const team = teams[code];
+  const sumRates = team.reduce((a,n)=>a+rateOf(n),0);
+  const hours = p.cost / sumRates; // sample timesheets: even split across the team
+  const rows = team.map(n=>({n, role:roleOf(n), h:hours, r:rateOf(n), c:hours*rateOf(n)}));
+  const inv = invoiced[code], paid = paidM[code], outstanding = inv - paid;
+
+  // fee runway / break-even projection
+  const start = pDMY(startDates[code]);
+  const weeksElapsed = Math.max((TODAY - start)/(7*86400000), 0.2);
+  const weeklyBurn = p.cost / weeksElapsed;
+  const breakEvenWeeks = p.fee / weeklyBurn;
+  const weeksToBE = breakEvenWeeks - weeksElapsed;
+  const beDate = addDays(start, Math.round(breakEvenWeeks*7));
+  const passed = weeksToBE < 0;
+  const feeRemaining = p.fee - p.cost;
+  const totalWeeks = Math.min(Math.max(weeksElapsed, breakEvenWeeks), weeksElapsed*5) * 1.08;
+  const runwaySVG = (() => {
+    const W=760,H=176,padL=8,padR=8,padT=14,padB=22, iw=W-padL-padR, ih=H-padT-padB;
+    const endR = weeklyBurn*totalWeeks;
+    const yMax = Math.max(p.fee, endR)*1.06;
+    const xOf = w => padL + (w/totalWeeks)*iw;
+    const yOf = r => padT + (1 - r/yMax)*ih;
+    const todayW = Math.min(weeksElapsed, totalWeeks);
+    const feeY = yOf(p.fee);
+    const beIn = breakEvenWeeks <= totalWeeks;
+    const beX = xOf(breakEvenWeeks);
+    const todayX = xOf(todayW);
+    return `<div class="tbl-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cumulative cost projected against fee">
+      <line x1="${padL}" y1="${feeY.toFixed(1)}" x2="${padL+iw}" y2="${feeY.toFixed(1)}" stroke="var(--foreground)" stroke-width="1" stroke-dasharray="5 4"/>
+      <text x="${padL+iw-2}" y="${(feeY-6).toFixed(1)}" text-anchor="end" font-size="10.5" fill="var(--muted-fg)">Fee ${ZAR(p.fee)}</text>
+      <line x1="${todayX.toFixed(1)}" y1="${padT}" x2="${todayX.toFixed(1)}" y2="${padT+ih}" stroke="var(--border-2)" stroke-width="1"/>
+      <text x="${todayX.toFixed(1)}" y="${H-7}" text-anchor="middle" font-size="10" fill="var(--muted-fg)">Today</text>
+      <text x="${padL}" y="${H-7}" text-anchor="start" font-size="10" fill="var(--muted-fg)">${fDMY(start).slice(0,5)}</text>
+      <polyline points="${xOf(0)},${yOf(0).toFixed(1)} ${todayX.toFixed(1)},${yOf(p.cost).toFixed(1)}" fill="none" stroke="${burnColor(p.burn)}" stroke-width="2.5" stroke-linecap="round"/>
+      <polyline points="${todayX.toFixed(1)},${yOf(p.cost).toFixed(1)} ${xOf(totalWeeks).toFixed(1)},${yOf(endR).toFixed(1)}" fill="none" stroke="${burnColor(p.burn)}" stroke-width="2" stroke-dasharray="5 4" opacity=".6"/>
+      ${beIn ? `<line x1="${beX.toFixed(1)}" y1="${feeY.toFixed(1)}" x2="${beX.toFixed(1)}" y2="${padT+ih}" stroke="var(--crit)" stroke-width="1" stroke-dasharray="2 3"/>
+      <circle cx="${beX.toFixed(1)}" cy="${feeY.toFixed(1)}" r="4.5" fill="var(--crit)" stroke="#fff" stroke-width="2"/>
+      <text x="${beX.toFixed(1)}" y="${(padT+ih+14).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--crit)">Break-even ${fDMY(beDate).slice(0,5)}</text>` : `<text x="${(padL+iw).toFixed(1)}" y="${(padT+12).toFixed(1)}" text-anchor="end" font-size="10.5" fill="var(--muted-fg)">Break-even beyond ${Math.round(totalWeeks)}w</text>`}
+    </svg></div>`;
+  })();
+  const runwayStat = (lab,val,cls="") => `<div style="min-width:150px"><div style="font-size:12px;color:var(--muted-fg)">${lab}</div><div class="num ${cls}" style="font-size:21px;font-weight:600;letter-spacing:-.02em;margin-top:2px">${val}</div></div>`;
+  const runwayHtml = `<div class="card">
+    <div class="card-h"><h2>Fee runway</h2><span class="meta">projection at current burn rate</span></div>
+    <div class="card-b">
+      <div style="display:flex;gap:32px;flex-wrap:wrap;margin-bottom:14px">
+        ${runwayStat("Weekly burn", ZAR(weeklyBurn)+"/wk")}
+        ${runwayStat("Fee remaining", (feeRemaining<0?'-':'')+ZAR(Math.abs(feeRemaining)), feeRemaining<0?'neg-amt':'')}
+        ${runwayStat("Runway left", passed ? Math.abs(weeksToBE).toFixed(0)+" wks over" : "~"+weeksToBE.toFixed(0)+" weeks", passed?'neg-amt':'')}
+        ${runwayStat("Break-even date", fDMY(beDate), passed?'neg-amt':'')}
+      </div>
+      ${runwaySVG}
+      <p class="muted" style="font-size:12px;margin:12px 0 0">${passed
+        ? `Cost passed the fee around <strong style="color:var(--crit)">${fDMY(beDate)}</strong>. Every hour logged since has been at a loss (currently ${ZAR(Math.abs(feeRemaining))} under).`
+        : `At the current burn of ${ZAR(weeklyBurn)}/week, the fee is exhausted around <strong>${fDMY(beDate)}</strong> (about ${weeksToBE.toFixed(0)} weeks of team time left). Past this, the project loses money.`}</p>
+    </div>
+  </div>`;
+  const bar = (v,max,col) => `<div style="flex:1;height:8px;border-radius:20px;background:var(--muted);overflow:hidden"><div style="height:100%;width:${Math.min(v/max*100,100)}%;background:${col};border-radius:20px"></div></div>`;
+  const billRow = (lab,v,col) => `<div style="display:flex;align-items:center;gap:12px"><div style="width:140px;font-size:13px;color:var(--muted-fg)">${lab}</div>${bar(v,p.fee,col)}<div class="mono" style="width:110px;text-align:right;font-weight:550">${ZAR(v)}</div></div>`;
+  const stat = (lab,val,formula,cls="") => `<div class="kpi"><div class="desc">${lab}</div><div class="val num ${cls}">${val}</div><div class="foot"><div class="sub mono" style="font-size:11px">${formula}</div></div></div>`;
+  return `
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="btn ghost" data-back="projects"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> Projects</button>
+    <div>
+      <div style="font-size:19px;font-weight:600;letter-spacing:-.02em">${p.name}</div>
+      <div class="proj-code mono" style="font-size:12.5px">${p.code} · ${p.client}</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">${typeTag(p.type)} <span class="muted" style="font-size:13px">Lead: ${lead(p.pm)}</span> ${statusPill(p.status)}</div>
+  </div>
+  <div class="kpis">
+    ${stat("Fee estimate", ZAR(p.fee), "Agreed fee · from Fresh Projects")}
+    ${stat("Cost to date", ZAR(p.cost), "Σ (hours × cost rate)")}
+    ${stat("Margin", (p.margin<0?'-':'')+ZAR(Math.abs(p.margin)), "fee − cost to date", p.margin<0?'neg-amt':'pos-amt')}
+    ${stat("Fee burn", p.burn.toFixed(0)+"%", "cost to date ÷ fee", p.burn>100?'neg-amt':'')}
+  </div>
+  ${runwayHtml}
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-h"><h2>Cost to date breakdown</h2><span class="meta">${ZAR(p.cost)}</span></div>
+      <div class="card-b" style="padding-top:8px"><div class="tbl-wrap"><table>
+        <thead><tr><th>Employee</th><th>Role</th><th class="r">Hours</th><th class="r">Cost rate</th><th class="r">Costed</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+          <td style="font-weight:550">${lead(r.n)}</td><td class="muted">${r.role}</td>
+          <td class="r mono">${r.h.toFixed(0)}</td><td class="r mono">${ZAR(r.r)}/h</td>
+          <td class="r mono" style="font-weight:550">${ZAR(r.c)}</td>
+        </tr>`).join("")}
+        <tr style="border-top:2px solid var(--border)"><td colspan="2" style="font-weight:600">Cost to date</td>
+          <td class="r mono" style="font-weight:600">${rows.reduce((a,r)=>a+r.h,0).toFixed(0)}</td><td></td>
+          <td class="r mono" style="font-weight:600">${ZAR(p.cost)}</td></tr>
+        </tbody></table></div>
+        <p class="muted" style="font-size:12px;margin:12px 0 0">Hours come from Fresh Projects timesheets; cost rate from Staff &amp; Rates. The product of the two, summed across the team, is the cost to date.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Billing &amp; payment</h2><span class="meta">Fresh vs Xero</span></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:13px;padding-top:16px">
+        ${billRow("Fee estimate", p.fee, "var(--border-2)")}
+        ${billRow("Invoiced (Fresh)", inv, "var(--chart-soft)")}
+        ${billRow("Paid (Xero)", paid, "var(--pos)")}
+        ${billRow("Cost to date", p.cost, burnColor(p.burn))}
+        <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:space-between;font-size:13px">
+          <span class="muted">Outstanding (invoiced, not yet paid)</span><span class="mono" style="font-weight:600">${ZAR(outstanding)}</span>
+        </div>
+        ${code==="AP-2405" ? `<div class="alert crit"><svg class="ai" viewBox="0 0 24 24" fill="none" stroke="var(--crit)" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><div><div class="t">Over budget &amp; under-billed</div><div class="d">Cost (${ZAR(p.cost)}) now exceeds the fee (${ZAR(p.fee)}). One Fresh invoice (FP-1012, ${ZAR(165600)}) is also missing from Xero.</div></div></div>` : ``}
+        ${code==="AP-2403" ? `<div class="alert warn"><svg class="ai" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><div><div class="t">Invoice amount mismatch</div><div class="d">FP-1006 is ${ZAR(586500)} in Fresh but ${ZAR(580750)} in Xero, off by ${ZAR(5750)}.</div></div></div>` : ``}
+      </div>
+    </div>
+  </div>`;
+}
+
+const titles = {dashboard:"Dashboard", projects:"Project Profitability", invoices:"Overdue Invoices", cash:"Cash Flow", recon:"Reconciliation", explore:"Explore", staff:"Staff & Rates"};
+
+function show(page) {
+  document.getElementById("content").innerHTML = PAGES[page]();
+  document.getElementById("crumbCur").textContent = titles[page];
+  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page===page));
+  window.scrollTo(0,0);
+}
+function showDetail(code) {
+  const p = projects.find(x=>x.code===code); if(!p) return;
+  document.getElementById("content").innerHTML = projectDetail(code);
+  document.getElementById("crumbCur").textContent = p.name;
+  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page==="projects"));
+  window.scrollTo(0,0);
+}
+document.getElementById("nav").addEventListener("click", e => { const b = e.target.closest(".nav-item"); if (b) show(b.dataset.page); });
+document.getElementById("content").addEventListener("click", e => {
+  const back = e.target.closest("[data-back]"); if (back) { show(back.dataset.back); return; }
+  const row = e.target.closest("tr[data-code]"); if (row) showDetail(row.dataset.code);
+});
+show("dashboard");
+</script>
