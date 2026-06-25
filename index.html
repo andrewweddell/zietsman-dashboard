@@ -154,22 +154,62 @@
 
   .muted { color: var(--muted-fg); }
   .mnav { display: none; }
+  .botnav { display: none; }
+  .sheet-wrap { display: none; }
 
   @media (max-width: 980px) {
     .shell { grid-template-columns: 1fr; }
     .sidebar { display: none; }
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .grid-2 { grid-template-columns: 1fr; }
-    .topbar { padding: 0 14px; gap: 8px; }
+    .topbar { padding: 0 16px; gap: 10px; height: 54px; }
     .crumb .root, .crumb .sep { display: none; }
-    .asof, .topbar .btn.ghost { display: none; }
-    .mnav { display: block; flex: 1; min-width: 0; }
-    .content { padding: 16px 14px 40px; }
+    .crumb .cur { font-size: 16px; font-weight: 650; }
+    .asof, .topbar .btn { display: none; }
+    .content { padding: 16px 14px calc(74px + env(safe-area-inset-bottom)); gap: 16px; }
+
+    /* bottom tab bar */
+    .botnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+      background: rgba(255,255,255,.94); backdrop-filter: blur(10px); border-top: 1px solid var(--border);
+      padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+    .botnav button { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: none; border: none; font-family: inherit; font-size: 10.5px; color: var(--muted-fg);
+      padding: 6px 2px; border-radius: 9px; cursor: pointer; letter-spacing: -.01em; -webkit-tap-highlight-color: transparent; }
+    .botnav button svg { width: 21px; height: 21px; }
+    .botnav button.active { color: var(--foreground); font-weight: 600; }
+    .botnav button .ndot { position: absolute; top: 3px; right: calc(50% - 18px); width: 7px; height: 7px;
+      background: var(--crit); border-radius: 50%; border: 1.5px solid #fff; }
+
+    /* bottom sheet for "More" */
+    .sheet-wrap.open { display: block; position: fixed; inset: 0; z-index: 40; }
+    .sheet-ov { position: absolute; inset: 0; background: rgba(9,9,11,.35); }
+    .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card);
+      border-radius: 16px 16px 0 0; padding: 10px 10px calc(14px + env(safe-area-inset-bottom));
+      box-shadow: 0 -8px 30px rgba(9,9,11,.18); }
+    .sheet .grip { width: 36px; height: 4px; border-radius: 4px; background: var(--border-2); margin: 6px auto 12px; }
+    .sheet button { width: 100%; display: flex; align-items: center; gap: 12px; background: none; border: none;
+      font-family: inherit; font-size: 15px; color: var(--foreground); padding: 14px 12px; border-radius: 10px;
+      cursor: pointer; text-align: left; }
+    .sheet button:active { background: var(--muted); }
+    .sheet button svg { width: 19px; height: 19px; color: var(--muted-fg); }
+
+    /* tables reflow into cards */
+    table.responsive thead { display: none; }
+    table.responsive tbody tr { display: block; padding: 13px 15px; border: 1px solid var(--border);
+      border-radius: 11px; margin-bottom: 10px; background: var(--card); }
+    table.responsive tbody tr:last-child { margin-bottom: 0; }
+    table.responsive tbody tr:hover { background: var(--card); }
+    table.responsive td { display: flex; justify-content: space-between; align-items: center; gap: 16px;
+      padding: 6px 0; border: none; white-space: normal; text-align: right; }
+    table.responsive td::before { content: attr(data-label); color: var(--muted-fg); font-weight: 500;
+      text-align: left; font-size: 12.5px; flex: none; }
+    table.responsive td.cell-title { display: block; text-align: left; padding: 0 0 9px;
+      margin-bottom: 5px; border-bottom: 1px solid var(--muted); }
+    table.responsive td.cell-title::before { content: none; }
+    table.responsive .burn { min-width: 0; width: 62%; }
   }
-  @media (max-width: 520px) {
+  @media (max-width: 420px) {
     .kpis { grid-template-columns: 1fr; }
-    .topbar .btn span, .topbar .btn { font-size: 0; }
-    .topbar .btn svg { width: 16px; height: 16px; }
   }
 </style>
 
@@ -249,6 +289,24 @@
     </div>
     <div class="content" id="content"></div>
   </main>
+</div>
+
+<nav class="botnav" id="botnav">
+  <button data-page="dashboard" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Home</button>
+  <button data-page="projects"><span class="ndot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>Projects</button>
+  <button data-page="invoices"><span class="ndot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2h12l4 4v16H4zM14 2v4h4M8 12h8M8 16h6"/></svg>Invoices</button>
+  <button data-page="cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8M21 7v5h-5"/></svg>Cash</button>
+  <button data-sheet="open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>More</button>
+</nav>
+
+<div class="sheet-wrap" id="sheetWrap">
+  <div class="sheet-ov" data-sheet="close"></div>
+  <div class="sheet">
+    <div class="grip"></div>
+    <button data-page="recon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l4 4-4 4M20 7H8M8 21l-4-4 4-4M4 17h12"/></svg>Reconciliation</button>
+    <button data-page="explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Explore</button>
+    <button data-page="staff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0M16 5.5a3 3 0 0 1 0 5.5M21 20a5.6 5.6 0 0 0-4-5.3"/></svg>Staff &amp; Rates</button>
+  </div>
 </div>
 
 <script>
@@ -331,21 +389,21 @@ const fDMY = dt => `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth
 const addDays = (dt,n) => new Date(dt.getTime()+n*86400000);
 
 function profitTable(list) {
-  return `<div class="tbl-wrap"><table>
+  return `<div class="tbl-wrap"><table class="responsive">
     <thead><tr>
       <th>Project</th><th>Type</th><th>Lead</th>
       <th class="r">Fee estimate</th><th class="r">Cost to date</th><th class="r">Margin</th>
       <th>Fee burn</th><th>Status</th>
     </tr></thead><tbody>${list.map(p => `
       <tr class="prow" data-code="${p.code}">
-        <td><div class="proj-name">${p.name}</div><div class="proj-code mono">${p.code} · ${p.client}</div></td>
-        <td>${typeTag(p.type)}</td>
-        <td class="muted">${lead(p.pm)}</td>
-        <td class="r mono">${ZAR(p.fee)}</td>
-        <td class="r mono">${ZAR(p.cost)}</td>
-        <td class="r mono ${p.margin<0?'neg-amt':'pos-amt'}">${p.margin<0?'-':''}${ZAR(Math.abs(p.margin))}</td>
-        <td><div class="burn"><div class="track"><div class="fill" style="width:${Math.min(p.burn,100)}%;background:${burnColor(p.burn)}"></div></div><div class="pct">${p.burn.toFixed(0)}%</div></div></td>
-        <td>${statusPill(p.status)}</td>
+        <td class="cell-title"><div class="proj-name">${p.name}</div><div class="proj-code mono">${p.code} · ${p.client}</div></td>
+        <td data-label="Type">${typeTag(p.type)}</td>
+        <td class="muted" data-label="Lead">${lead(p.pm)}</td>
+        <td class="r mono" data-label="Fee estimate">${ZAR(p.fee)}</td>
+        <td class="r mono" data-label="Cost to date">${ZAR(p.cost)}</td>
+        <td class="r mono ${p.margin<0?'neg-amt':'pos-amt'}" data-label="Margin">${p.margin<0?'-':''}${ZAR(Math.abs(p.margin))}</td>
+        <td data-label="Fee burn"><div class="burn"><div class="track"><div class="fill" style="width:${Math.min(p.burn,100)}%;background:${burnColor(p.burn)}"></div></div><div class="pct">${p.burn.toFixed(0)}%</div></div></td>
+        <td data-label="Status">${statusPill(p.status)}</td>
       </tr>`).join("")}</tbody></table></div>`;
 }
 
@@ -469,12 +527,14 @@ PAGES.invoices = () => `
   <div class="card">
     <div class="card-h"><h2>Aged receivables</h2><span class="meta">from Xero · ${ZAR(totalOverdue)} outstanding</span></div>
     <div class="card-b">${agedStack()}
-      <div class="tbl-wrap"><table>
+      <div class="tbl-wrap"><table class="responsive">
         <thead><tr><th>Client</th><th>Invoice</th><th>Due date</th><th class="r">Days overdue</th><th class="r">Amount due</th></tr></thead>
         <tbody>${aged.map(a=>`<tr>
-          <td style="font-weight:550">${a.client}</td><td class="mono muted">${a.inv}</td><td class="mono muted">${a.due}</td>
-          <td class="r"><span class="pill ${a.bucket>=3?'over':a.bucket>=2?'watch':'ok'}">${a.days} days</span></td>
-          <td class="r mono" style="font-weight:550">${ZAR(a.amt)}</td>
+          <td class="cell-title" style="font-weight:550">${a.client}</td>
+          <td class="mono muted" data-label="Invoice">${a.inv}</td>
+          <td class="mono muted" data-label="Due date">${a.due}</td>
+          <td class="r" data-label="Days overdue"><span class="pill ${a.bucket>=3?'over':a.bucket>=2?'watch':'ok'}">${a.days} days</span></td>
+          <td class="r mono" style="font-weight:550" data-label="Amount due">${ZAR(a.amt)}</td>
         </tr>`).join("")}</tbody>
       </table></div>
     </div>
@@ -652,23 +712,42 @@ function projectDetail(code) {
 
 const titles = {dashboard:"Dashboard", projects:"Project Profitability", invoices:"Overdue Invoices", cash:"Cash Flow", recon:"Reconciliation", explore:"Explore", staff:"Staff & Rates"};
 
+const BOT = ["dashboard","projects","invoices","cash"];
+function setNavActive(page) {
+  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page===page));
+  document.getElementById("mNav").value = BOT.includes(page) || ["recon","explore","staff"].includes(page) ? page : "dashboard";
+  document.querySelectorAll(".botnav button").forEach(b => {
+    const active = b.dataset.page===page || (b.dataset.sheet==="open" && !BOT.includes(page));
+    b.classList.toggle("active", !!active);
+  });
+}
 function show(page) {
   document.getElementById("content").innerHTML = PAGES[page]();
   document.getElementById("crumbCur").textContent = titles[page];
-  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page===page));
-  document.getElementById("mNav").value = page;
+  setNavActive(page);
+  closeSheet();
   window.scrollTo(0,0);
 }
 function showDetail(code) {
   const p = projects.find(x=>x.code===code); if(!p) return;
   document.getElementById("content").innerHTML = projectDetail(code);
   document.getElementById("crumbCur").textContent = p.name;
-  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page==="projects"));
-  document.getElementById("mNav").value = "projects";
+  setNavActive("projects");
+  closeSheet();
   window.scrollTo(0,0);
 }
+function closeSheet() { document.getElementById("sheetWrap").classList.remove("open"); }
 document.getElementById("nav").addEventListener("click", e => { const b = e.target.closest(".nav-item"); if (b) show(b.dataset.page); });
 document.getElementById("mNav").addEventListener("change", e => show(e.target.value));
+document.getElementById("botnav").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.sheet === "open") { document.getElementById("sheetWrap").classList.add("open"); return; }
+  if (b.dataset.page) show(b.dataset.page);
+});
+document.getElementById("sheetWrap").addEventListener("click", e => {
+  if (e.target.closest("[data-sheet='close']")) { closeSheet(); return; }
+  const b = e.target.closest("button[data-page]"); if (b) show(b.dataset.page);
+});
 document.getElementById("content").addEventListener("click", e => {
   const back = e.target.closest("[data-back]"); if (back) { show(back.dataset.back); return; }
   const row = e.target.closest("tr[data-code]"); if (row) showDetail(row.dataset.code);
